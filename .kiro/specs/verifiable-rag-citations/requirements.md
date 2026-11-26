@@ -166,8 +166,8 @@ runs on Prismo technology.
 
 #### Acceptance Criteria
 
-1. THE project SHALL include a Foundry deploy script that deploys CorpusRegistry to Glassnet
-   using legacy transactions.
+1. THE project SHALL include a `python -m vrag deploy` command that deploys CorpusRegistry to
+   Glassnet using legacy transactions and the Hardhat production build artifact.
 2. THE project SHALL document how to verify the contract source on the Glassnet Blockscout explorer.
 3. WHEN deployed THE README SHALL list the contract address and an explorer link.
 4. THE end-to-end demo (ask → ✅, tamper → ❌, unknown source → ❌, private receipt → ✅) SHALL

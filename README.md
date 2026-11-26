@@ -11,7 +11,7 @@ goes on Prismo, so authorized users can cite them with proof.
 
 > Status: planning. The implementation plan is in
 > [`.kiro/specs/verifiable-rag-citations/`](.kiro/specs/verifiable-rag-citations/) and is meant to be
-> built step by step with Kiro CLI.
+> built step by step with Kiro.
 
 ## How it works
 
@@ -33,58 +33,62 @@ See [`design.md`](.kiro/specs/verifiable-rag-citations/design.md) for the full a
 | Gas token | test USDC ([faucet](https://faucet.glassnet.prismo.network)) |
 | Explorer | https://explorer.glassnet.prismo.network |
 
-Glassnet only accepts legacy (type-0) transactions, so deploy commands use `--legacy`.
-Source: [Prismo Builder Guide](https://prismo.technology/builder-guide).
+Glassnet only accepts legacy (type-0) transactions; the project's deploy and publish commands
+handle that. Source: [Prismo Builder Guide](https://prismo.technology/builder-guide).
 
 ## Setup on Windows
 
-Everything except Ollama runs inside WSL (Ubuntu). Ollama stays on Windows.
+Everything runs directly on Windows. No WSL or Linux needed.
 
-### 1. Install WSL and Ubuntu
-In PowerShell (as Administrator):
-```powershell
-wsl --install -d Ubuntu
-```
-Restart, open **Ubuntu** from the Start menu, and create a Linux username and password.
+### 1. Install the tools
+Install each of these with its normal Windows installer:
 
-### 2. Let WSL reach Ollama on Windows
-Create `C:\Users\<you>\.wslconfig` with:
-```ini
-[wsl2]
-networkingMode=mirrored
-```
-Then run `wsl --shutdown` in PowerShell and reopen Ubuntu. Now `http://localhost:11434`
-inside WSL reaches Ollama on Windows. (Mirrored networking needs Windows 11 22H2 or later.)
+| Tool | Download | Note |
+|---|---|---|
+| Python 3.12 | https://www.python.org/downloads/ | Tick **"Add python.exe to PATH"** on the first screen |
+| Node.js LTS (22 or newer) | https://nodejs.org/ | Default options are fine |
+| Git | https://git-scm.com/download/win | Default options are fine |
+| VS Code | https://code.visualstudio.com/ | You already have this |
+| Ollama | https://ollama.com/ | You already have this |
 
-In PowerShell, download the models:
+Then close and reopen VS Code so it sees the new tools.
+
+### 2. Download the Ollama models
+In the VS Code terminal (``Ctrl+` ``):
 ```powershell
 ollama pull llama3.1:8b
 ollama pull nomic-embed-text
 ```
-Check from Ubuntu: `curl http://localhost:11434/api/tags` should list both models.
 
-### 3. Install tools in Ubuntu
-```bash
-sudo apt update && sudo apt install -y git python3 python3-venv python3-pip curl unzip
-curl -L https://foundry.paradigm.xyz | bash && source ~/.bashrc && foundryup
-curl -fsSL https://cli.kiro.dev/install | bash
+### 3. Check everything is installed
+```powershell
+python --version     # 3.12.x
+node --version       # v22 or newer
+git --version
+ollama list          # shows both models
 ```
-Check: `python3 --version` (3.11+), `forge --version`, `kiro-cli --version`.
 
-### 4. Open the project in VS Code
-1. Install [VS Code](https://code.visualstudio.com/) on Windows and its **WSL** extension.
-2. In Ubuntu:
-   ```bash
-   git clone https://github.com/zazazzz-exe/VERIFIED-RAG-CITATIONS.git
-   cd VERIFIED-RAG-CITATIONS
-   cp .env.example .env
-   code .
-   ```
-3. VS Code opens connected to WSL. Open the terminal with ``Ctrl+` `` and run `kiro-cli`.
-   Sign in the first time.
+### 4. Allow PowerShell to run the Python virtual environment (one time)
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+Answer `Y`. This lets `.venv\Scripts\Activate.ps1` run later.
 
-### 5. Build with Kiro CLI
-Kiro CLI reads the steering files in `.kiro/steering/` and the spec in
+### 5. Clone the project in VS Code
+1. Press **Ctrl+Shift+P**, type **Git: Clone**, and press Enter.
+2. Paste `https://github.com/zazazzz-exe/VERIFIED-RAG-CITATIONS.git` and pick a folder.
+3. Click **Open** when VS Code asks.
+4. In the terminal: `copy .env.example .env`
+
+### 6. Install Kiro
+Pick one:
+- **Kiro CLI (terminal):** in PowerShell, run `irm 'https://cli.kiro.dev/install.ps1' | iex`,
+  reopen the terminal, then run `kiro-cli` in the project folder. Sign in the first time.
+- **Kiro extension for VS Code** (needs VS Code 1.145 or later): see
+  https://kiro.dev/docs/getting-started/installation/
+
+### 7. Build with Kiro
+Kiro reads the steering files in `.kiro/steering/` and the spec in
 `.kiro/specs/verifiable-rag-citations/`. Work through the tasks in order, for example:
 ```
 Execute task 1 from .kiro/specs/verifiable-rag-citations/tasks.md

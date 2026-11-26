@@ -14,10 +14,13 @@ out/
 data/public/
 data/private/
 
-# Foundry
-contracts/out/
-contracts/cache/
-contracts/broadcast/
+# Hardhat / Node
+node_modules/
+blockchain/artifacts/
+blockchain/cache/
+blockchain/types/
+blockchain/coverage/
+blockchain/ignition/deployments/
 
 # OS / editor
 .DS_Store

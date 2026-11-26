@@ -16,12 +16,12 @@ Only roots and metadata go on-chain. Passage text, embeddings, salts, and trees 
 
 ```mermaid
 flowchart LR
-    subgraph Local["Laptop (WSL + Windows)"]
+    subgraph Local["Windows laptop"]
         Docs[PDF / TXT] --> Ingest[vrag.ingest]
         Ingest --> Merkle[vrag.merkle]
         Merkle --> Store[(out/corpora/*.json<br/>out/private.db)]
         Ingest --> Index[vrag.index]
-        Index <--> Ollama[(Ollama on Windows<br/>llama3.1:8b + nomic-embed-text)]
+        Index <--> Ollama[(Ollama<br/>llama3.1:8b + nomic-embed-text)]
         Index --> Chroma[(out/chroma)]
         App[Streamlit app] --> RAG[vrag.rag]
         RAG --> Index
@@ -90,7 +90,7 @@ Loads `.env` with python-dotenv into a frozen dataclass.
 | `RPC_URL` | `http://127.0.0.1:8545` | Glassnet: `https://rpc.glassnet.prismo.network` |
 | `REGISTRY_ADDRESS` | (required for publish/verify) | Deployed CorpusRegistry |
 | `PRIVATE_KEY` | (required for publish only) | Testnet-only wallet |
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama on Windows |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama on the same laptop |
 | `OLLAMA_MODEL` | `llama3.1:8b` | |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | |
 | `TOP_K` | `5` | |
@@ -151,11 +151,19 @@ Loads `.env` with python-dotenv into a frozen dataclass.
 ### `vrag/chain.py`
 - `connect(config) -> Web3` — checks `w3.eth.chain_id` against `EXPECTED_CHAIN_IDS[NETWORK]`,
   raises `WrongChainError` on mismatch.
-- `publish(corpus) -> int` — builds a legacy tx with `gasPrice = w3.eth.gas_price`, estimates gas,
-  signs with `PRIVATE_KEY`, waits for the receipt, reads `corpusId` from `CorpusPublished`.
+- `send_legacy_tx(w3, tx) -> receipt` — one shared helper that sets `type=0`,
+  `gasPrice=w3.eth.gas_price`, `nonce`, `chainId`, estimated `gas` (+20% margin), signs with
+  `PRIVATE_KEY`, sends, and waits for the receipt. Used by both `deploy` and `publish`.
+- `deploy() -> str` — deploys `CorpusRegistry(owner = deployer address)` from the Hardhat
+  production artifact, prints the address and explorer link.
+- `publish(corpus) -> int` — calls `publish(...)` through `send_legacy_tx` and reads `corpusId`
+  from the `CorpusPublished` event.
 - `verify_passage(corpus_id, proof, doc_id, page, index, content_hash) -> bool` — `eth_call`.
 - `get_corpus(corpus_id)`.
-- ABI loaded from `contracts/out/CorpusRegistry.sol/CorpusRegistry.json` (Foundry build output).
+- ABI and bytecode loaded from
+  `blockchain/artifacts/contracts/CorpusRegistry.sol/CorpusRegistry.json`
+  (Hardhat build output; build with `--build-profile production` so the deployed bytecode matches
+  what `hardhat verify` expects).
 
 ### `vrag/rag.py`
 - `ask(question, authorized) -> Answer` — search; if best similarity < `MIN_SIMILARITY`, return a
@@ -181,12 +189,13 @@ Loads `.env` with python-dotenv into a frozen dataclass.
 ### `vrag/cli.py` (`python -m vrag …`)
 | Command | Purpose |
 |---|---|
+| `deploy` | Deploy CorpusRegistry, print address for `.env` |
 | `ingest <folder> --slug --name --version [--private]` | Build corpus file (+ private.db) |
 | `publish --slug` | Publish root, save corpusId |
 | `index --slug` | Embed and add to Chroma |
 | `ask "<question>" [--auditor]` | Ask from the terminal, print statuses |
 | `verify-receipt <file.json>` | Check a receipt |
-| `fixtures` | Write `contracts/test/fixtures/merkle.json` |
+| `fixtures` | Write `blockchain/test/fixtures/merkle.json` |
 | `check` | Print network, chain ID, registry, Ollama status |
 
 ### `app/streamlit_app.py`
@@ -197,7 +206,7 @@ Loads `.env` with python-dotenv into a frozen dataclass.
 - Tamper toggle replaces the first digit (or first character) of the displayed passage before
   verification and labels the passage "(modified for demo)".
 
-### `contracts/src/CorpusRegistry.sol`
+### `blockchain/contracts/CorpusRegistry.sol`
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -237,12 +246,51 @@ contract CorpusRegistry is Ownable {
 }
 ```
 
-`foundry.toml`: `solc = "0.8.24"`, `evm_version = "shanghai"`, `remappings` for OpenZeppelin,
-`fs_permissions = [{ access = "read", path = "./test/fixtures" }]`, and an `rpc_endpoints`
-entry `glassnet = "https://rpc.glassnet.prismo.network"`.
+### `blockchain/hardhat.config.ts` (Hardhat 3, ESM)
 
-Deploy: `forge script script/Deploy.s.sol --rpc-url glassnet --broadcast --legacy`
-(deployer key from `.env` or a `cast wallet` keystore).
+Created with `npx hardhat --init` → "A TypeScript Hardhat project using Mocha and Ethers.js",
+then trimmed to this project. Intended shape (check option names against the installed
+Hardhat 3 version):
+
+```ts
+import { defineConfig } from "hardhat/config";
+import hardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+
+const solc = { version: "0.8.24", settings: { evmVersion: "shanghai" } };
+
+export default defineConfig({
+  plugins: [hardhatToolboxMochaEthers],          // includes hardhat-verify
+  solidity: {
+    profiles: {
+      default: solc,
+      production: { ...solc, settings: { ...solc.settings, optimizer: { enabled: true, runs: 200 } } },
+    },
+  },
+  networks: {
+    glassnet: { type: "http", chainType: "generic", url: "https://rpc.glassnet.prismo.network" },
+  },
+  chainDescriptors: {
+    101001000: {
+      name: "Prismo Glassnet",
+      blockExplorers: {
+        blockscout: {
+          name: "Glassnet Explorer",
+          url: "https://explorer.glassnet.prismo.network",
+          apiUrl: "https://explorer.glassnet.prismo.network/api",
+        },
+      },
+    },
+  },
+});
+```
+
+- The `glassnet` network has no `accounts`: Hardhat never signs transactions in this project.
+  It is only needed for `hardhat verify`.
+- OpenZeppelin is installed with `npm install @openzeppelin/contracts@^5`.
+- Local chain: `npx hardhat node` (JSON-RPC at `http://127.0.0.1:8545`, chain ID 31337, with
+  funded test accounts printed at startup; use account #0's key in `.env` for local work).
+- Verify after deploying to Glassnet:
+  `npx hardhat verify blockscout --network glassnet <REGISTRY_ADDRESS> <OWNER_ADDRESS>`.
 
 ## Data Models
 
@@ -275,9 +323,10 @@ class CitationResult:
 ## Testing Strategy
 
 - **Cross-language Merkle test (critical):** `python -m vrag fixtures` writes sample passages,
-  content hashes, leaves, root, and proofs to `contracts/test/fixtures/merkle.json`. A Foundry
-  test publishes the root and asserts every proof verifies, and that a changed leaf, changed
-  proof element, or wrong corpus ID fails.
+  content hashes, leaves, root, and proofs to `blockchain/test/fixtures/merkle.json`. A Hardhat
+  TypeScript test reads the file, deploys the contract on Hardhat's simulated network, publishes
+  the root, and asserts that `leafOf` matches every Python leaf, every proof verifies, and a
+  changed leaf, changed proof element, or wrong corpus ID fails.
 - **Python unit tests:** normalization, content hash with/without salt, tree with 1, 2, 3, and
   many leaves, proof round-trips, deterministic ingest of `data/samples/`, citation parsing,
   quote check, receipt rejection for wrong chain.
