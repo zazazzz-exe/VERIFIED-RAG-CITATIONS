@@ -177,7 +177,8 @@ Loads `.env` with python-dotenv into a frozen dataclass.
   choose the provider: `PRIVATE_LLM_PROVIDER` if any retrieved passage is private, else
   `LLM_PROVIDER`; an explicit `provider` overrides this only for public-only questions, and
   `anthropic` with a private passage raises an error before any network call. Build the prompt,
-  call the provider at `temperature=0` (Claude Messages API, or Ollama `/api/chat`), and parse
+  call the provider (Claude Messages API with no sampling parameters, or Ollama `/api/chat` at
+  `temperature=0`), and parse
   labels with regex `\[P(\d+)\]`.
 - Prompt rules: answer only from the passages; cite `[P#]` after each claim; put exact quotes in
   double quotes; say "The documents do not say" when unsure.

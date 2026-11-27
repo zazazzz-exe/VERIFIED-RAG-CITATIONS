@@ -81,7 +81,9 @@ Python builds trees and proofs. Solidity verifies them with OpenZeppelin
   a question with private passages is refused with a clear error.
 - Every answer records which provider and model produced it, and the UI shows it.
 - `ANTHROPIC_API_KEY` is read from `.env` only, never logged, never included in error messages.
-- Claude is called at temperature 0 with the same `[P#]` prompt as Ollama.
+- Claude is called with the same `[P#]` prompt as Ollama. Do not send `temperature` (or other
+  sampling parameters) to Claude: `claude-opus-5-5` rejects them with a 400 error and the
+  installed `anthropic` SDK has no such argument. Ollama is called with `temperature=0`.
 
 ## Security rules
 - Never hardcode or commit private keys. Read `PRIVATE_KEY` from `.env` (gitignored).

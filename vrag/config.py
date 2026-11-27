@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
+
+PROVIDERS = ("anthropic", "ollama")
 
 EXPECTED_CHAIN_IDS: dict[str, int] = {"local": 31337, "glassnet": 101001000}
 
@@ -19,9 +21,12 @@ class Config:
     rpc_url: str = "http://127.0.0.1:8545"
     registry_address: str = ""
     private_key: str = ""
+    llm_provider: str = "anthropic"  # answers questions with only public passages
+    private_llm_provider: str = "ollama"  # answers questions that include private passages
+    anthropic_api_key: str = field(default="", repr=False)  # never print or log this
+    anthropic_model: str = ""
     ollama_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.1:8b"
-    ollama_embed_model: str = "nomic-embed-text"
+    ollama_model: str = "gemma3:4b"
     top_k: int = 5
     min_similarity: float = 0.35
     auditor_token: str = ""
@@ -45,14 +50,26 @@ def load_config(env_file: Path | None = None) -> Config:
         raise ValueError(
             f"NETWORK must be one of {sorted(EXPECTED_CHAIN_IDS)}, got {network!r}"
         )
+    llm_provider = get("LLM_PROVIDER", Config.llm_provider).lower()
+    private_llm_provider = get("PRIVATE_LLM_PROVIDER", Config.private_llm_provider).lower()
+    for name, value in (("LLM_PROVIDER", llm_provider), ("PRIVATE_LLM_PROVIDER", private_llm_provider)):
+        if value not in PROVIDERS:
+            raise ValueError(f"{name} must be one of {list(PROVIDERS)}, got {value!r}")
+    if private_llm_provider == "anthropic":
+        raise ValueError(
+            "PRIVATE_LLM_PROVIDER cannot be anthropic: private passages must not be sent to a hosted API"
+        )
     return Config(
         network=network,
         rpc_url=get("RPC_URL", Config.rpc_url),
         registry_address=get("REGISTRY_ADDRESS", ""),
         private_key=get("PRIVATE_KEY", ""),
+        llm_provider=llm_provider,
+        private_llm_provider=private_llm_provider,
+        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", "").strip(),
+        anthropic_model=get("ANTHROPIC_MODEL", ""),
         ollama_url=get("OLLAMA_URL", Config.ollama_url),
         ollama_model=get("OLLAMA_MODEL", Config.ollama_model),
-        ollama_embed_model=get("OLLAMA_EMBED_MODEL", Config.ollama_embed_model),
         top_k=int(get("TOP_K", str(Config.top_k))),
         min_similarity=float(get("MIN_SIMILARITY", str(Config.min_similarity))),
         auditor_token=os.environ.get("AUDITOR_TOKEN", "").strip(),

@@ -62,21 +62,21 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   corpora are published on the local Hardhat node and `check` reports chain ID 31337. Ask the user
   before continuing if anything fails.
 
-- [ ] 8. Search index with a local embedding model and Chroma
-  - [ ] 8.0 Update `vrag/config.py`, `.env.example`, `requirements.txt`, and the README for the
+- [x] 8. Search index with a local embedding model and Chroma
+  - [x] 8.0 Update `vrag/config.py`, `.env.example`, `requirements.txt`, and the README for the
     new providers (`LLM_PROVIDER`, `PRIVATE_LLM_PROVIDER`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`,
     `OLLAMA_MODEL=gemma3:4b`; drop `OLLAMA_EMBED_MODEL`; add the `anthropic` package) and make
     `check` report the providers (never the key)
     - _Requirements: 4.1, 5.6, 5.7_
-  - [ ] 8.1 Implement `vrag/index.py` (local `all-MiniLM-L6-v2` embeddings, Chroma collection,
+  - [x] 8.1 Implement `vrag/index.py` (local `all-MiniLM-L6-v2` embeddings, Chroma collection,
     public-only filter)
     - _Requirements: 5.1, 5.4, 5.5_
-  - [ ] 8.2 Add the `index` CLI command and index the sample corpora
+  - [x] 8.2 Add the `index` CLI command and index the sample corpora
     - _Requirements: 5.1_
 
 - [ ] 9. RAG answers and citation verification
   - [ ] 9.1 Implement `vrag/rag.py` (similarity threshold, prompt, provider routing with Claude
-    for public-only and Ollama for private, temperature 0, `[P#]` parsing)
+    for public-only and Ollama for private, Ollama at temperature 0, `[P#]` parsing)
     - _Requirements: 5.2, 5.3, 5.6, 5.7, 5.8_
   - [ ] 9.2 Implement `vrag/verify.py` (recompute hash from displayed text, on-chain check, unknown
     source, quote check, unable-to-verify, receipts)

@@ -14,6 +14,7 @@ from web3 import Web3
 from vrag import chain
 from vrag.chain import ChainError, WrongChainError
 from vrag.config import ROOT, load_config
+from vrag.index import index_corpus
 from vrag.ingest import ingest_folder
 from vrag.store import OUT_DIR, load_corpus, record_publication, save_corpus
 from vrag.text import ZERO32, content_hash, normalize
@@ -122,6 +123,12 @@ def cmd_publish(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_index(args: argparse.Namespace) -> int:
+    count = index_corpus(args.slug, Path(args.out_dir))
+    print(f"Indexed {count} passages from {args.slug!r}")
+    return 0
+
+
 def cmd_check(_: argparse.Namespace) -> int:
     config = load_config()
     ok = True
@@ -150,19 +157,33 @@ def cmd_check(_: argparse.Namespace) -> int:
     except Exception as exc:
         print(f"Chain:    unreachable ({exc})")
         ok = False
+    ok &= _check_llm(config)
+    return 0 if ok else 1
+
+
+def _check_llm(config) -> bool:
+    """Print LLM provider status. Never prints the API key."""
+    ok = True
+    print(f"Public answers:  {config.llm_provider}")
+    print(f"Private answers: {config.private_llm_provider}")
+    if "anthropic" in (config.llm_provider, config.private_llm_provider):
+        key = "set" if config.anthropic_api_key else "NOT SET (ANTHROPIC_API_KEY in .env)"
+        model = config.anthropic_model or "NOT SET (ANTHROPIC_MODEL in .env)"
+        print(f"Claude:   key {key}; model {model}")
+        ok &= bool(config.anthropic_api_key and config.anthropic_model)
     try:
         url = config.ollama_url.rstrip("/") + "/api/tags"
         tags = requests.get(url, timeout=5).json()
         names = {m["name"] for m in tags.get("models", [])}
         print(f"Ollama:   reachable at {config.ollama_url}")
-        for model in (config.ollama_model, config.ollama_embed_model):
-            found = model in names or f"{model}:latest" in names
-            status = "installed" if found else f"missing (run `ollama pull {model}`)"
-            print(f"  model {model}: {status}")
+        found = config.ollama_model in names or f"{config.ollama_model}:latest" in names
+        status = "installed" if found else f"missing (run `ollama pull {config.ollama_model}`)"
+        print(f"  model {config.ollama_model}: {status}")
+        ok &= found
     except Exception as exc:
         print(f"Ollama:   unreachable at {config.ollama_url} ({exc})")
         ok = False
-    return 0 if ok else 1
+    return ok
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -185,6 +206,11 @@ def build_parser() -> argparse.ArgumentParser:
     publish.add_argument("--slug", required=True)
     publish.add_argument("--out-dir", default=str(OUT_DIR), help=argparse.SUPPRESS)
     publish.set_defaults(func=cmd_publish)
+
+    index = sub.add_parser("index", help="embed a published corpus and add it to the search index")
+    index.add_argument("--slug", required=True)
+    index.add_argument("--out-dir", default=str(OUT_DIR), help=argparse.SUPPRESS)
+    index.set_defaults(func=cmd_index)
 
     sub.add_parser("check", help="show network, registry, and Ollama status").set_defaults(
         func=cmd_check
