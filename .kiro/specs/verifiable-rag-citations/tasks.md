@@ -96,7 +96,7 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   - [x] 10.3 Add the tamper demo toggle and the receipt verifier panel
     - _Requirements: 8.4, 8.5, 7.5_
 
-- [ ] 11. Checkpoint: run the four demo cases on the local Hardhat node (ask → ✅, tamper → ❌,
+- [x] 11. Checkpoint: run the four demo cases on the local Hardhat node (ask → ✅, tamper → ❌,
   unknown source → ❌, private receipt → ✅). Ask the user before continuing if anything fails.
 
 - [ ] 12. Deploy to Prismo Glassnet
