@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import sys
 from pathlib import Path
@@ -11,11 +12,12 @@ from vrag import merkle
 import requests
 from web3 import Web3
 
-from vrag import chain
+from vrag import chain, rag, verify
 from vrag.chain import ChainError, WrongChainError
-from vrag.config import ROOT, load_config
+from vrag.config import ROOT, check_auditor_token, load_config
 from vrag.index import index_corpus
 from vrag.ingest import ingest_folder
+from vrag.rag import LLMError
 from vrag.store import OUT_DIR, load_corpus, record_publication, save_corpus
 from vrag.text import ZERO32, content_hash, normalize
 
@@ -129,6 +131,88 @@ def cmd_index(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ask(args: argparse.Namespace) -> int:
+    config = load_config()
+    authorized = False
+    if args.auditor:
+        if sys.stdin.isatty():
+            token = getpass.getpass("Auditor token: ")
+        else:  # piped input (scripts, tests): getpass cannot read it on Windows
+            token = sys.stdin.readline().strip()
+        if not check_auditor_token(token, config):
+            print("error: wrong auditor token (or AUDITOR_TOKEN is not set in .env)", file=sys.stderr)
+            return 1
+        authorized = True
+
+    out_dir = Path(args.out_dir)
+    answer = rag.ask(args.question, authorized, args.provider, config, out_dir)
+    if not answer.found:
+        print(answer.text)
+        return 0
+
+    print(f"Answer ({answer.model} via {answer.provider}):")
+    print(answer.text)
+    try:
+        w3 = chain.connect(config)
+    except ChainError:
+        w3 = None  # each citation will report "Unable to verify"
+    results = verify.check_answer(answer, config, authorized, w3=w3, out_dir=out_dir)
+
+    print("\nCitations:")
+    if not results:
+        print("  (the answer cites no passages)")
+    for result in results:
+        passage = answer.passages.get(result.label)
+        where = passage.ref.passage_id if passage else "not among the retrieved passages"
+        print(f"  [{result.label}] {result.status_label}  {where}")
+        if result.detail:
+            print(f"      {result.detail}")
+        for quote in result.quote_warnings:
+            print(f'      {verify.QUOTE_WARNING}: "{quote}"')
+
+    cited = [answer.passages[r.label] for r in results if r.label in answer.passages]
+    if cited:
+        print("\nPassages:")
+        for p in cited:
+            print(f"  [{p.label}] (similarity {p.similarity:.2f}) {p.ref.passage_id}")
+            print(f"      {p.text}")
+
+    if args.export_receipts:
+        export_dir = Path(args.export_receipts)
+        for result in results:
+            passage = answer.passages.get(result.label)
+            if result.status == "verified" and passage and passage.ref.private:
+                receipt = verify.make_receipt(result.label, answer, config, authorized, out_dir)
+                export_dir.mkdir(parents=True, exist_ok=True)
+                path = export_dir / f"receipt-{passage.ref.slug}-{result.label}.json"
+                path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+                print(f"Receipt written: {path}")
+    return 0
+
+
+def cmd_verify_receipt(args: argparse.Namespace) -> int:
+    config = load_config()
+    path = Path(args.file)
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8-sig"))  # tolerate a Windows BOM
+    except json.JSONDecodeError as exc:
+        print(f"error: {path} is not valid JSON: {exc}", file=sys.stderr)
+        return 1
+    result = verify.verify_receipt(receipt, config)
+    labels = {
+        "verified": verify.STATUS_LABELS["verified"],
+        "not_verified": verify.STATUS_LABELS["not_verified"],
+        "unable": verify.STATUS_LABELS["unable"],
+        "rejected": "\u274c Rejected",
+    }
+    print(labels[result.status])
+    if result.corpus_name:
+        print(f"Corpus: {result.corpus_name} ({result.corpus_version})")
+    if result.reason:
+        print(result.reason)
+    return 0 if result.status == "verified" else 1
+
+
 def cmd_check(_: argparse.Namespace) -> int:
     config = load_config()
     ok = True
@@ -212,6 +296,18 @@ def build_parser() -> argparse.ArgumentParser:
     index.add_argument("--out-dir", default=str(OUT_DIR), help=argparse.SUPPRESS)
     index.set_defaults(func=cmd_index)
 
+    ask = sub.add_parser("ask", help="ask a question and verify the citations")
+    ask.add_argument("question")
+    ask.add_argument("--auditor", action="store_true", help="unlock private corpora (asks for the token)")
+    ask.add_argument("--provider", choices=["anthropic", "ollama"], help="force a provider (public passages only for anthropic)")
+    ask.add_argument("--export-receipts", metavar="DIR", help="write receipts for verified private citations")
+    ask.add_argument("--out-dir", default=str(OUT_DIR), help=argparse.SUPPRESS)
+    ask.set_defaults(func=cmd_ask)
+
+    receipt = sub.add_parser("verify-receipt", help="verify a citation receipt on-chain")
+    receipt.add_argument("file")
+    receipt.set_defaults(func=cmd_verify_receipt)
+
     sub.add_parser("check", help="show network, registry, and Ollama status").set_defaults(
         func=cmd_check
     )
@@ -223,9 +319,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):  # Windows consoles default to a legacy code page
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(sys.argv[1:] if argv is None else argv)
     try:
         return args.func(args)
-    except (ChainError, WrongChainError, ValueError, FileNotFoundError, NotADirectoryError) as exc:
+    except (ChainError, WrongChainError, LLMError, ValueError, FileNotFoundError, NotADirectoryError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

@@ -74,18 +74,18 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   - [x] 8.2 Add the `index` CLI command and index the sample corpora
     - _Requirements: 5.1_
 
-- [ ] 9. RAG answers and citation verification
-  - [ ] 9.1 Implement `vrag/rag.py` (similarity threshold, prompt, provider routing with Claude
+- [x] 9. RAG answers and citation verification
+  - [x] 9.1 Implement `vrag/rag.py` (similarity threshold, prompt, provider routing with Claude
     for public-only and Ollama for private, Ollama at temperature 0, `[P#]` parsing)
     - _Requirements: 5.2, 5.3, 5.6, 5.7, 5.8_
-  - [ ] 9.2 Implement `vrag/verify.py` (recompute hash from displayed text, on-chain check, unknown
+  - [x] 9.2 Implement `vrag/verify.py` (recompute hash from displayed text, on-chain check, unknown
     source, quote check, unable-to-verify, receipts)
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 7.4, 7.5_
-  - [ ] 9.3 Write tests for citation parsing, the quote check, provider routing (private passages
+  - [x] 9.3 Write tests for citation parsing, the quote check, provider routing (private passages
     never reach the Anthropic client, forcing Claude on private is refused), and receipt rejection
     for a wrong chain ID or registry
     - _Requirements: 5.7, 5.8, 6.4, 6.5, 7.5_
-  - [ ] 9.4 Add the `ask [--provider ollama|anthropic]` and `verify-receipt` CLI commands
+  - [x] 9.4 Add the `ask [--provider ollama|anthropic]` and `verify-receipt` CLI commands
     - _Requirements: 5.1, 5.8, 7.5_
 
 - [ ] 10. Streamlit web app

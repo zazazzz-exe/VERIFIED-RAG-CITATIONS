@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -75,3 +76,10 @@ def load_config(env_file: Path | None = None) -> Config:
         auditor_token=os.environ.get("AUDITOR_TOKEN", "").strip(),
         explorer_url=get("EXPLORER_URL", Config.explorer_url),
     )
+
+
+def check_auditor_token(candidate: str, config: Config) -> bool:
+    """True only if AUDITOR_TOKEN is set and `candidate` matches it (constant-time compare)."""
+    if not config.auditor_token:
+        return False
+    return hmac.compare_digest(candidate.encode("utf-8"), config.auditor_token.encode("utf-8"))
