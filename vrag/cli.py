@@ -330,7 +330,7 @@ def build_parser() -> argparse.ArgumentParser:
     receipt.add_argument("file")
     receipt.set_defaults(func=cmd_verify_receipt)
 
-    sub.add_parser("check", help="show network, registry, and Ollama status").set_defaults(
+    sub.add_parser("check", help="show network, registry, and LLM provider status").set_defaults(
         func=cmd_check
     )
 
