@@ -104,7 +104,7 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
     `npx hardhat verify blockscout --network glassnet <address> <owner>`, and record the address
     in the README
     - _Requirements: 9.1, 9.2, 9.3_
-  - [ ] 12.2 Publish the sample corpora (and the user's budget PDFs, if added) to Glassnet and
+  - [x] 12.2 Publish the sample corpora (and the user's budget PDFs, if added) to Glassnet and
     re-run the four demo cases
     - _Requirements: 9.4_
   - [ ] 12.3 Update the README with the demo steps, explorer links, and known limitations

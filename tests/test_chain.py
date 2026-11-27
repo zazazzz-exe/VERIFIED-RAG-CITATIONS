@@ -64,8 +64,9 @@ class FakeCall:
     def __init__(self):
         self.built = None
 
-    def estimate_gas(self, params):
+    def estimate_gas(self, params, block_identifier=None):
         self.params = params
+        self.block = block_identifier
         return 100_000
 
     def build_transaction(self, params):
@@ -82,7 +83,8 @@ class FakeSendEth:
     def __init__(self):
         self.raw = None
 
-    def get_transaction_count(self, address):
+    def get_transaction_count(self, address, block_identifier=None):
+        self.nonce_block = block_identifier
         return 4
 
     def send_raw_transaction(self, raw):
@@ -100,6 +102,7 @@ def test_send_legacy_tx_builds_a_type0_transaction():
 
     assert call.built["gasPrice"] == 7 and call.built["gas"] == 120_000  # +20% margin
     assert call.built["nonce"] == 4 and call.built["chainId"] == 31337
+    assert call.block == "latest" and eth.nonce_block == "latest"  # never "pending" (Glassnet quirk)
     assert "maxFeePerGas" not in call.built and "maxPriorityFeePerGas" not in call.built
     # A legacy transaction is a bare RLP list (first byte >= 0xc0); typed ones start with 0x01/0x02.
     assert eth.raw[0] >= 0xC0
@@ -144,13 +147,62 @@ def test_reingesting_same_content_keeps_corpus_id(tmp_path):
     assert load_corpus("s", tmp_path).corpus_id == 5
 
 
-def test_publish_refuses_an_already_published_corpus(tmp_path, capsys):
-    corpus = ingest_folder(SAMPLES, "s", "S", "v1", pattern="public-*")
-    save_corpus(corpus, tmp_path)
-    record_publication("s", 0, "0xabc", 31337, tmp_path)
-    assert main(["publish", "--slug", "s", "--out-dir", str(tmp_path)]) == 1
-    assert "already published" in capsys.readouterr().err
+OLD_REGISTRY = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+NEW_REGISTRY = "0x5a134Ed6Ef85889566F6b77d206D610EF1A5815b"
 
+
+@pytest.fixture
+def publish_env(tmp_path, monkeypatch):
+    """A saved public corpus plus a fake chain, so `publish` never touches a real network."""
+    save_corpus(ingest_folder(SAMPLES, "s", "S", "v1", pattern="public-*"), tmp_path)
+    sent = []
+    fake_w3 = SimpleNamespace(eth=SimpleNamespace(chain_id=101001000))
+
+    def use(config):
+        monkeypatch.setattr("vrag.cli.load_config", lambda: config)
+        monkeypatch.setattr(chain, "connect", lambda cfg: fake_w3)
+        monkeypatch.setattr(chain, "publish", lambda corpus, cfg, w3=None: sent.append(corpus.slug) or 7)
+
+    return tmp_path, sent, use
+
+
+def test_publish_refuses_a_corpus_already_published_on_this_registry(publish_env, capsys):
+    out, sent, use = publish_env
+    record_publication("s", 0, OLD_REGISTRY, 31337, out)
+    use(Config(network="local", registry_address=OLD_REGISTRY.lower()))  # address case is ignored
+    assert main(["publish", "--slug", "s", "--out-dir", str(out)]) == 1
+    assert "already published" in capsys.readouterr().err
+    assert sent == []  # no transaction
+
+
+def test_publish_refuses_records_that_do_not_say_where_they_were_published(publish_env):
+    out, sent, use = publish_env
+    record_publication("s", 0, "", 31337, out)
+    use(Config(network="local", registry_address=OLD_REGISTRY))
+    assert main(["publish", "--slug", "s", "--out-dir", str(out)]) == 1
+    assert sent == []
+
+
+@pytest.mark.parametrize("old_registry, old_chain", [
+    (OLD_REGISTRY, 31337),          # local node -> Glassnet
+    (OLD_REGISTRY, 101001000),      # same chain, different registry
+])
+def test_publish_to_a_different_registry_replaces_the_record(publish_env, capsys, old_registry, old_chain):
+    out, sent, use = publish_env
+    record_publication("s", 0, old_registry, old_chain, out)
+    use(Config(network="glassnet", registry_address=NEW_REGISTRY))
+    assert main(["publish", "--slug", "s", "--out-dir", str(out)]) == 0
+    assert sent == ["s"]
+    assert "published to another network or registry" in capsys.readouterr().out
+    saved = load_corpus("s", out)
+    assert (saved.corpus_id, saved.registry, saved.chain_id) == (7, NEW_REGISTRY, 101001000)
+
+
+def test_publish_to_the_same_registry_on_another_chain_id_is_allowed(publish_env):
+    out, sent, use = publish_env
+    record_publication("s", 0, NEW_REGISTRY, 31337, out)  # same address, different chain
+    use(Config(network="glassnet", registry_address=NEW_REGISTRY))
+    assert main(["publish", "--slug", "s", "--out-dir", str(out)]) == 0 and sent == ["s"]
 
 def test_ingest_pattern_selects_files():
     public = ingest_folder(SAMPLES, "p", "P", "v1", pattern="public-*")

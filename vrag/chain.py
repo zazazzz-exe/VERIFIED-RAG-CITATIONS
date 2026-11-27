@@ -87,11 +87,12 @@ def send_legacy_tx(w3: Web3, call: Any, private_key: str) -> Any:
         "from": sender,
         "type": 0,
         "gasPrice": w3.eth.gas_price,
-        "nonce": w3.eth.get_transaction_count(sender),
+        "nonce": w3.eth.get_transaction_count(sender, "latest"),
         "chainId": w3.eth.chain_id,
     }
     try:
-        gas = int(call.estimate_gas(params) * GAS_MARGIN)
+        # Pin to "latest": Glassnet (cdk-erigon) can report a zero balance for "pending".
+        gas = int(call.estimate_gas(params, block_identifier="latest") * GAS_MARGIN)
         tx = call.build_transaction({**params, "gas": gas})
         # eth_account signs a legacy transaction when `type` is absent; guard against
         # EIP-1559 fields ever slipping in (Glassnet rejects them).

@@ -106,17 +106,39 @@ def cmd_deploy(_: argparse.Namespace) -> int:
     return 0
 
 
+def _published_here(corpus, config) -> bool:
+    """True if the corpus already has an ID on the configured registry and network.
+
+    A record without a registry or chain ID is treated as published, to stay on the safe side.
+    """
+    if corpus.corpus_id is None:
+        return False
+    if not corpus.registry or corpus.chain_id is None:
+        return True
+    return (
+        corpus.chain_id == config.expected_chain_id
+        and corpus.registry.lower() == config.registry_address.lower()
+    )
+
+
 def cmd_publish(args: argparse.Namespace) -> int:
     config = load_config()
     out_dir = Path(args.out_dir)
     corpus = load_corpus(args.slug, out_dir)
-    if corpus.corpus_id is not None:
+    if _published_here(corpus, config):
         print(
-            f"error: corpus {args.slug!r} is already published as corpus ID {corpus.corpus_id}. "
-            "Published roots are permanent; ingest with a new --version to publish a new one.",
+            f"error: corpus {args.slug!r} is already published as corpus ID {corpus.corpus_id} "
+            f"on registry {corpus.registry}. Published roots are permanent; "
+            "ingest with a new --version to publish a new one.",
             file=sys.stderr,
         )
         return 1
+    if corpus.corpus_id is not None:
+        print(
+            f"Note: {args.slug!r} was published to another network or registry "
+            f"(chain {corpus.chain_id}, {corpus.registry}). Publishing it again to this one "
+            "and replacing the recorded ID."
+        )
     w3 = chain.connect(config)
     corpus_id = chain.publish(corpus, config, w3)
     record_publication(args.slug, corpus_id, config.registry_address, w3.eth.chain_id, out_dir)
