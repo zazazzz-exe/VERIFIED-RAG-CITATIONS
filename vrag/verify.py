@@ -48,6 +48,20 @@ class CitationResult:
         return STATUS_LABELS[self.status]
 
 
+def tamper(text: str) -> str:
+    """Change exactly one character, for the tamper demo.
+
+    Replaces the first digit with the next digit; if there is no digit, replaces the first
+    character. The result always differs from the input (for non-empty text).
+    """
+    for i, ch in enumerate(text):
+        if ch in "0123456789":
+            return text[:i] + str((int(ch) + 1) % 10) + text[i + 1 :]
+    if not text:
+        return text
+    return ("X" if text[0] != "X" else "Y") + text[1:]
+
+
 def quotes_for_label(answer_text: str, label: str) -> list[str]:
     """Double-quoted strings that are followed directly by a citation of `label`."""
     found = []

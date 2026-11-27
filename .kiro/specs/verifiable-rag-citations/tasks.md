@@ -88,12 +88,12 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   - [x] 9.4 Add the `ask [--provider ollama|anthropic]` and `verify-receipt` CLI commands
     - _Requirements: 5.1, 5.8, 7.5_
 
-- [ ] 10. Streamlit web app
-  - [ ] 10.1 Build the chat page with answer, citation badges, and passage expanders with explorer links
+- [x] 10. Streamlit web app
+  - [x] 10.1 Build the chat page with answer, citation badges, and passage expanders with explorer links
     - _Requirements: 8.1, 8.2, 8.3_
-  - [ ] 10.2 Add the auditor token unlock (constant-time compare), private search, and receipt export
+  - [x] 10.2 Add the auditor token unlock (constant-time compare), private search, and receipt export
     - _Requirements: 5.5, 7.2, 7.3, 7.4_
-  - [ ] 10.3 Add the tamper demo toggle and the receipt verifier panel
+  - [x] 10.3 Add the tamper demo toggle and the receipt verifier panel
     - _Requirements: 8.4, 8.5, 7.5_
 
 - [ ] 11. Checkpoint: run the four demo cases on the local Hardhat node (ask → ✅, tamper → ❌,
