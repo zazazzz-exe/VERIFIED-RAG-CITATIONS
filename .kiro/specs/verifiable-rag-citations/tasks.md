@@ -19,16 +19,16 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   - [x] 2.3 Write pytest tests for normalization, salted/unsalted hashes, and trees with 1, 2, 3, and 10 leaves
     - _Requirements: 2.1, 2.3_
 
-- [ ] 3. CorpusRegistry contract
-  - [ ] 3.1 Create the Hardhat 3 project in `blockchain\` (`npx hardhat --init`, TypeScript +
+- [x] 3. CorpusRegistry contract
+  - [x] 3.1 Create the Hardhat 3 project in `blockchain\` (`npx hardhat --init`, TypeScript +
     Mocha + Ethers.js), install `@openzeppelin/contracts@^5`, remove the template's sample
     contract/tests/Ignition module, and write `hardhat.config.ts` as in the design
     (solc 0.8.24, `evmVersion: "shanghai"`, production profile, `glassnet` network without
     accounts, `chainDescriptors` for chain 101001000)
     - _Requirements: 9.1, 9.2_
-  - [ ] 3.2 Implement `blockchain\contracts\CorpusRegistry.sol` as specified in the design
+  - [x] 3.2 Implement `blockchain\contracts\CorpusRegistry.sol` as specified in the design
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
-  - [ ] 3.3 Write `test\CorpusRegistry.test.ts`: owner-only publish, event fields, unknown corpus ID
+  - [x] 3.3 Write `test\CorpusRegistry.test.ts`: owner-only publish, event fields, unknown corpus ID
     returns false, zero root and zero passage count rejected
     - _Requirements: 3.1, 3.2, 3.5, 3.6_
 
