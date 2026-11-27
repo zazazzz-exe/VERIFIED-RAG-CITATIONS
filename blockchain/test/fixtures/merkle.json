@@ -1,0 +1,75 @@
+{
+  "name": "fixture-corpus",
+  "version": "v1",
+  "root": "0x814a3de00be753e3eb3ae74b1b577bc8933afd6ecf4e81738d029435ff6fcddf",
+  "passages": [
+    {
+      "docId": "sample-a",
+      "page": 1,
+      "index": 0,
+      "text": "The quick brown fox jumps over the lazy dog.",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "contentHash": "0x1a6db54f4adf8b5e0fdbd8d35a1687a390cad3e97c7c09b5e246e9e5f175369b",
+      "leaf": "0xab47f07e4dcf750b5eb4ff841cbe5e220cf9c0fa2edf1bb9cdc16a19e64b98da",
+      "proof": [
+        "0xbbef398ed2d472e8bda789db00fd31b456c54df1a8de5afc1adcf9aa94c60080",
+        "0xb84bdfdaf7c96e63a28d37983528bc7004bd603e968a587ac48ef7edd922bc16",
+        "0x28a282159c7a7dd80123f267e527526bacb486bb2785a137da25824b0506fc6b"
+      ]
+    },
+    {
+      "docId": "sample-a",
+      "page": 1,
+      "index": 1,
+      "text": "Second passage on the first page.",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "contentHash": "0x812d4e1d1e02671085cfdeddc57ff63a357bf6881bed4c64ccca4ccfa92ad14c",
+      "leaf": "0xbbef398ed2d472e8bda789db00fd31b456c54df1a8de5afc1adcf9aa94c60080",
+      "proof": [
+        "0xab47f07e4dcf750b5eb4ff841cbe5e220cf9c0fa2edf1bb9cdc16a19e64b98da",
+        "0xb84bdfdaf7c96e63a28d37983528bc7004bd603e968a587ac48ef7edd922bc16",
+        "0x28a282159c7a7dd80123f267e527526bacb486bb2785a137da25824b0506fc6b"
+      ]
+    },
+    {
+      "docId": "sample-a",
+      "page": 2,
+      "index": 0,
+      "text": "Caf\u00e9 \u2013 r\u00e9sum\u00e9 of the fictional budget: 1,250,000 units.",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "contentHash": "0xd06e2e6ac56002a065a5f444b211046e9138a2962a8264c0ff71c4a6578b9365",
+      "leaf": "0xcbb3e1bc6267622fe07ea7a126a252d3f252e764157a9bab5cbd9b412573b49b",
+      "proof": [
+        "0x133adbbafbcb5bf7fe99720ddc524958e79c8805642d6016a74c09f735d83433",
+        "0x317e668344cf31667bb7c9dafc2531d678906b1e51421b6f0278239c93fb1e3d",
+        "0x28a282159c7a7dd80123f267e527526bacb486bb2785a137da25824b0506fc6b"
+      ]
+    },
+    {
+      "docId": "sample-b",
+      "page": 1,
+      "index": 0,
+      "text": "\u00e9cole (decomposed accent, normalized to NFC).",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "contentHash": "0x534c8ebc6417d6a287824b3f983e2f85b711118ebab187f1ec69776c2b2e7bc8",
+      "leaf": "0x133adbbafbcb5bf7fe99720ddc524958e79c8805642d6016a74c09f735d83433",
+      "proof": [
+        "0xcbb3e1bc6267622fe07ea7a126a252d3f252e764157a9bab5cbd9b412573b49b",
+        "0x317e668344cf31667bb7c9dafc2531d678906b1e51421b6f0278239c93fb1e3d",
+        "0x28a282159c7a7dd80123f267e527526bacb486bb2785a137da25824b0506fc6b"
+      ]
+    },
+    {
+      "docId": "sample-b",
+      "page": 3,
+      "index": 2,
+      "text": "Private fictional passage kept with a salt.",
+      "salt": "0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "contentHash": "0x1975e29ca18f93a24b974232dd73a5cf49284a9ed94bd6f839450f9622876ec7",
+      "leaf": "0x28a282159c7a7dd80123f267e527526bacb486bb2785a137da25824b0506fc6b",
+      "proof": [
+        "0x12f1ea9ca6167eb0e364722c8b7ed4e7d75786297d8170f1ea2055db524463f7"
+      ]
+    }
+  ]
+}

@@ -32,11 +32,11 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
     returns false, zero root and zero passage count rejected
     - _Requirements: 3.1, 3.2, 3.5, 3.6_
 
-- [ ] 4. Cross-language Merkle check (must pass before continuing)
-  - [ ] 4.1 Add `python -m vrag fixtures` that writes `blockchain\test\fixtures\merkle.json`
+- [x] 4. Cross-language Merkle check (must pass before continuing)
+  - [x] 4.1 Add `python -m vrag fixtures` that writes `blockchain\test\fixtures\merkle.json`
     (passages, content hashes, leaves, root, proofs)
     - _Requirements: 2.4_
-  - [ ] 4.2 Add `test\MerkleFixture.test.ts` that loads the fixture, deploys the contract, publishes
+  - [x] 4.2 Add `test\MerkleFixture.test.ts` that loads the fixture, deploys the contract, publishes
     the root, checks every `leafOf` value and proof, and checks that tampered leaves, proofs, and
     corpus IDs fail. Run with `npx hardhat test`.
     - _Requirements: 2.4, 3.4_
