@@ -1,0 +1,9 @@
+Merkle trees: a short public overview
+
+A Merkle tree is a binary tree of hashes. Each leaf is the hash of one piece of data, and each internal node is the hash of its two children. The single hash at the top is called the root.
+
+The root commits to every leaf. If any leaf changes, the hashes above it change, and the root changes too. Publishing only the root is therefore enough to fix the contents of the whole data set.
+
+A Merkle proof shows that one leaf belongs to a tree with a known root. The proof lists the sibling hash at each level between the leaf and the root. A verifier hashes the leaf together with each sibling in turn and checks that the final value equals the root. The proof grows with the logarithm of the number of leaves, so a tree with a million leaves needs only about twenty hashes.
+
+Merkle trees are used in version control systems, certificate transparency logs, and blockchains. In each case they let a verifier check a small piece of data without downloading the full data set.

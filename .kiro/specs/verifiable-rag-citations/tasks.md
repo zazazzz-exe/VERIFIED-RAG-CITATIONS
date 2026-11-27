@@ -2,7 +2,7 @@
 
 All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
 
-- [ ] 1. Set up the project skeleton
+- [x] 1. Set up the project skeleton
   - Create `requirements.txt` (pymupdf, chromadb, web3, python-dotenv, requests, streamlit, pytest)
   - Create the `vrag/` package with empty modules from `structure.md`, plus `vrag/__main__.py`
   - Implement `vrag/config.py` reading `.env` with the defaults in the design

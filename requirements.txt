@@ -1,0 +1,7 @@
+pymupdf
+chromadb
+web3
+python-dotenv
+requests
+streamlit
+pytest

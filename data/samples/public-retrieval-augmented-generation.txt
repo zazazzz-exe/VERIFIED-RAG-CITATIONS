@@ -1,0 +1,9 @@
+Retrieval-augmented generation: a short public overview
+
+Retrieval-augmented generation, usually shortened to RAG, combines a search step with a language model. When a user asks a question, the system first searches a collection of documents for passages related to the question. It then gives those passages to the language model and asks it to answer using only that material.
+
+Grounding the answer in retrieved passages reduces the chance that the model invents facts. It also allows the system to cite its sources, so a reader can check each claim against the original text.
+
+Search in a RAG system is commonly done with embeddings. An embedding model turns each passage into a list of numbers, and passages with similar meaning end up close together. The question is embedded the same way, and the closest passages are returned. A similarity threshold lets the system say that nothing relevant was found instead of guessing.
+
+A citation can still be wrong. The model may cite a passage that does not support the claim, or the displayed passage may differ from the original document. Checking citations against a trusted fingerprint of the source text is one way to detect the second kind of error.
