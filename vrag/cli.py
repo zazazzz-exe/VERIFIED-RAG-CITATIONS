@@ -8,9 +8,14 @@ import sys
 from pathlib import Path
 
 from vrag import merkle
-from vrag.config import ROOT
+import requests
+from web3 import Web3
+
+from vrag import chain
+from vrag.chain import ChainError, WrongChainError
+from vrag.config import ROOT, load_config
 from vrag.ingest import ingest_folder
-from vrag.store import OUT_DIR, save_corpus
+from vrag.store import OUT_DIR, load_corpus, record_publication, save_corpus
 from vrag.text import ZERO32, content_hash, normalize
 
 FIXTURE_PATH = ROOT / "blockchain" / "test" / "fixtures" / "merkle.json"
@@ -64,9 +69,21 @@ def cmd_fixtures(_: argparse.Namespace) -> int:
 
 def cmd_ingest(args: argparse.Namespace) -> int:
     corpus = ingest_folder(
-        Path(args.folder), args.slug, args.name, args.version, private=args.private
+        Path(args.folder), args.slug, args.name, args.version,
+        private=args.private, pattern=args.pattern,
     )
-    path = save_corpus(corpus, Path(args.out_dir))
+    out_dir = Path(args.out_dir)
+    try:  # keep the on-chain ID when the same content is ingested again
+        previous = load_corpus(args.slug, out_dir)
+        if previous.root == corpus.root and previous.corpus_id is not None:
+            corpus.corpus_id, corpus.registry, corpus.chain_id = (
+                previous.corpus_id,
+                previous.registry,
+                previous.chain_id,
+            )
+    except FileNotFoundError:
+        pass
+    path = save_corpus(corpus, out_dir)
     print(f"Ingested {len(corpus.passages)} passages into '{corpus.slug}' ({path})")
     print(f"Merkle root: 0x{corpus.root.hex()}")
     if corpus.private:
@@ -74,6 +91,78 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     for name, reason in corpus.skipped:
         print(f"Skipped {name}: {reason}", file=sys.stderr)
     return 0
+
+
+def cmd_deploy(_: argparse.Namespace) -> int:
+    config = load_config()
+    address = chain.deploy(config)
+    print(f"CorpusRegistry deployed to {address} on {config.network}")
+    if config.network == "glassnet":
+        print(f"Explorer: {chain.address_url(config, address)}")
+    print(f"Add this line to .env:  REGISTRY_ADDRESS={address}")
+    return 0
+
+
+def cmd_publish(args: argparse.Namespace) -> int:
+    config = load_config()
+    out_dir = Path(args.out_dir)
+    corpus = load_corpus(args.slug, out_dir)
+    if corpus.corpus_id is not None:
+        print(
+            f"error: corpus {args.slug!r} is already published as corpus ID {corpus.corpus_id}. "
+            "Published roots are permanent; ingest with a new --version to publish a new one.",
+            file=sys.stderr,
+        )
+        return 1
+    w3 = chain.connect(config)
+    corpus_id = chain.publish(corpus, config, w3)
+    record_publication(args.slug, corpus_id, config.registry_address, w3.eth.chain_id, out_dir)
+    print(f"Published {args.slug!r} ({len(corpus.passages)} passages) as corpus ID {corpus_id}")
+    print(f"Root: 0x{corpus.root.hex()}")
+    return 0
+
+
+def cmd_check(_: argparse.Namespace) -> int:
+    config = load_config()
+    ok = True
+    print(f"Network:  {config.network} (expected chain ID {config.expected_chain_id})")
+    print(f"RPC URL:  {config.rpc_url}")
+    try:
+        w3 = Web3(Web3.HTTPProvider(config.rpc_url, request_kwargs={"timeout": 10}))
+        actual = w3.eth.chain_id
+        match = actual == config.expected_chain_id
+        print(f"Chain ID: {actual} ({'OK' if match else 'MISMATCH'})")
+        ok &= match
+        if not config.registry_address:
+            print("Registry: not set (run `python -m vrag deploy`)")
+            ok = False
+        elif not Web3.is_address(config.registry_address):
+            print(f"Registry: {config.registry_address} is not a valid address")
+            ok = False
+        else:
+            address = Web3.to_checksum_address(config.registry_address)
+            has_code = len(w3.eth.get_code(address)) > 0
+            status = "OK" if has_code else "NO CONTRACT AT THIS ADDRESS"
+            print(f"Registry: {address} ({status})")
+            ok &= has_code
+            if has_code and match:
+                print(f"Corpora:  {chain.corpus_count(config, w3)} published")
+    except Exception as exc:
+        print(f"Chain:    unreachable ({exc})")
+        ok = False
+    try:
+        url = config.ollama_url.rstrip("/") + "/api/tags"
+        tags = requests.get(url, timeout=5).json()
+        names = {m["name"] for m in tags.get("models", [])}
+        print(f"Ollama:   reachable at {config.ollama_url}")
+        for model in (config.ollama_model, config.ollama_embed_model):
+            found = model in names or f"{model}:latest" in names
+            status = "installed" if found else f"missing (run `ollama pull {model}`)"
+            print(f"  model {model}: {status}")
+    except Exception as exc:
+        print(f"Ollama:   unreachable at {config.ollama_url} ({exc})")
+        ok = False
+    return 0 if ok else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -86,8 +175,20 @@ def build_parser() -> argparse.ArgumentParser:
     ingest.add_argument("--name", required=True)
     ingest.add_argument("--version", required=True)
     ingest.add_argument("--private", action="store_true")
+    ingest.add_argument("--pattern", default="*", help="only files matching this glob, e.g. 'public-*'")
     ingest.add_argument("--out-dir", default=str(OUT_DIR), help=argparse.SUPPRESS)
     ingest.set_defaults(func=cmd_ingest)
+
+    sub.add_parser("deploy", help="deploy CorpusRegistry").set_defaults(func=cmd_deploy)
+
+    publish = sub.add_parser("publish", help="publish a corpus root on-chain")
+    publish.add_argument("--slug", required=True)
+    publish.add_argument("--out-dir", default=str(OUT_DIR), help=argparse.SUPPRESS)
+    publish.set_defaults(func=cmd_publish)
+
+    sub.add_parser("check", help="show network, registry, and Ollama status").set_defaults(
+        func=cmd_check
+    )
 
     sub.add_parser("fixtures", help="write blockchain/test/fixtures/merkle.json").set_defaults(
         func=cmd_fixtures
@@ -97,4 +198,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(sys.argv[1:] if argv is None else argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except (ChainError, WrongChainError, ValueError, FileNotFoundError, NotADirectoryError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1

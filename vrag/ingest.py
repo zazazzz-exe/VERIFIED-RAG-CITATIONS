@@ -85,10 +85,13 @@ def split_passages(page_text: str) -> list[str]:
     return passages
 
 
-def ingest_folder(folder: Path, slug: str, name: str, version: str, private: bool = False) -> Corpus:
+def ingest_folder(
+    folder: Path, slug: str, name: str, version: str, private: bool = False, pattern: str = "*"
+) -> Corpus:
     """Turn the PDF/TXT files in `folder` into a corpus with a Merkle tree.
 
-    Deterministic for public corpora: files are sorted by name and passages keep reading
+    Only files whose name matches the glob `pattern` are used (default: all). Deterministic
+    for public corpora: files are sorted by name and passages keep reading
     order. Unreadable or empty files are skipped and listed in `Corpus.skipped`. Private
     corpora get a random salt per passage, so their root changes on every ingest.
     """
@@ -98,7 +101,7 @@ def ingest_folder(folder: Path, slug: str, name: str, version: str, private: boo
         raise NotADirectoryError(f"not a folder: {folder}")
 
     files = sorted(
-        (f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in _SUPPORTED),
+        (f for f in folder.glob(pattern) if f.is_file() and f.suffix.lower() in _SUPPORTED),
         key=lambda f: f.name,
     )
     stems = [f.stem for f in files]

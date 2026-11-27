@@ -171,6 +171,18 @@ def load_corpus(slug: str, out_dir: Path = OUT_DIR) -> Corpus:
     )
 
 
+def record_publication(
+    slug: str, corpus_id: int, registry: str, chain_id: int, out_dir: Path = OUT_DIR
+) -> None:
+    """Store the on-chain corpus ID in the corpus file (edits the JSON only)."""
+    path = corpus_path(slug, out_dir)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["corpusId"] = corpus_id
+    data["registry"] = registry
+    data["chainId"] = chain_id
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
 def get_passage(
     slug: str,
     doc_id: str,

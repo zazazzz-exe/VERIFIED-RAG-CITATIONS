@@ -50,11 +50,11 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   - [x] 5.3 Add the `ingest` CLI command and a test that ingesting `data/samples/` twice gives the same root
     - _Requirements: 1.3_
 
-- [ ] 6. Blockchain connection, deploy, and publish (from Python)
-  - [ ] 6.1 Implement `vrag/chain.py` (`connect` with chain ID check, shared `send_legacy_tx`,
+- [x] 6. Blockchain connection, deploy, and publish (from Python)
+  - [x] 6.1 Implement `vrag/chain.py` (`connect` with chain ID check, shared `send_legacy_tx`,
     `deploy`, `publish`, `verify_passage`, `get_corpus`) using the Hardhat production artifact
     - _Requirements: 3.1, 4.2, 4.3, 4.4, 9.1_
-  - [ ] 6.2 Add the `deploy`, `publish`, and `check` CLI commands. Start `npx hardhat node` in a
+  - [x] 6.2 Add the `deploy`, `publish`, and `check` CLI commands. Start `npx hardhat node` in a
     second terminal, deploy locally, and publish the sample corpora
     - _Requirements: 4.2, 9.1_
 
