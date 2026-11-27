@@ -18,7 +18,9 @@ goes on Prismo, so authorized users can cite them with proof.
 1. Documents are split into passages, and each passage is hashed (keccak256).
 2. The hashes are combined into one Merkle root, which is published to the `CorpusRegistry`
    contract on Prismo Glassnet.
-3. A question is answered by a local LLM (Ollama) using only retrieved passages, cited as `[P1]`, `[P2]`, …
+3. A question is answered by an LLM using only retrieved passages, cited as `[P1]`, `[P2]`, …
+   Claude (Anthropic API) answers from public passages. Any question that touches a private
+   passage is answered by a local model (Ollama) instead, so private text never leaves the laptop.
 4. For each citation, the app re-hashes the passage text it shows you and asks the contract to
    check the Merkle proof against the published root.
 
@@ -53,12 +55,13 @@ Install each of these with its normal Windows installer:
 
 Then close and reopen VS Code so it sees the new tools.
 
-### 2. Download the Ollama models
-In the VS Code terminal (``Ctrl+` ``):
+### 2. Local model (for private documents)
+Search uses a small embedding model that downloads itself the first time it runs (about 80 MB).
+Private-document answers use Ollama. In the VS Code terminal (``Ctrl+` ``):
 ```powershell
-ollama pull llama3.1:8b
-ollama pull nomic-embed-text
+ollama pull gemma3:4b
 ```
+Public answers use the Claude API: put `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` in `.env`.
 
 ### 3. Check everything is installed
 ```powershell

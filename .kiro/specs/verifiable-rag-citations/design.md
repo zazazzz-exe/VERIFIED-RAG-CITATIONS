@@ -21,14 +21,15 @@ flowchart LR
         Ingest --> Merkle[vrag.merkle]
         Merkle --> Store[(out/corpora/*.json<br/>out/private.db)]
         Ingest --> Index[vrag.index]
-        Index <--> Ollama[(Ollama<br/>llama3.1:8b + nomic-embed-text)]
+        Index <--> Embed[(local embedding model<br/>all-MiniLM-L6-v2)]
         Index --> Chroma[(out/chroma)]
         App[Streamlit app] --> RAG[vrag.rag]
         RAG --> Index
-        RAG --> Ollama
+        RAG -- private passages --> Ollama[(Ollama<br/>gemma3:4b)]
         RAG --> Verify[vrag.verify]
         Verify --> Store
     end
+    RAG -- public passages only --> Claude[Anthropic Claude API]
     subgraph Prismo["Prismo Glassnet (chain 101001000)"]
         Registry[CorpusRegistry]
     end
@@ -62,13 +63,14 @@ sequenceDiagram
     participant U as User
     participant A as Streamlit app
     participant R as rag
-    participant O as Ollama
+    participant O as LLM (Claude if all passages public, Ollama if any private)
     participant V as verify
     participant C as CorpusRegistry
     U->>A: question
-    A->>R: ask(question, authorized)
-    R->>O: embed question
+    A->>R: ask(question, authorized, provider=None)
+    R->>R: embed question locally
     R->>R: Chroma top-K (public only unless authorized)
+    R->>R: choose provider (private passage present -> PRIVATE_LLM_PROVIDER)
     R->>O: chat(prompt with [P1]..[PK])
     O-->>R: answer citing [P#]
     R->>V: citations
@@ -90,9 +92,12 @@ Loads `.env` with python-dotenv into a frozen dataclass.
 | `RPC_URL` | `http://127.0.0.1:8545` | Glassnet: `https://rpc.glassnet.prismo.network` |
 | `REGISTRY_ADDRESS` | (required for publish/verify) | Deployed CorpusRegistry |
 | `PRIVATE_KEY` | (required for publish only) | Testnet-only wallet |
+| `LLM_PROVIDER` | `anthropic` | Answers questions with only public passages (`anthropic` or `ollama`) |
+| `PRIVATE_LLM_PROVIDER` | `ollama` | Answers questions that include private passages. `anthropic` is rejected at startup |
+| `ANTHROPIC_API_KEY` | (required when Claude is used) | `.env` only, never logged |
+| `ANTHROPIC_MODEL` | (required when Claude is used) | Claude model ID, confirmed with a test call |
 | `OLLAMA_URL` | `http://localhost:11434` | Ollama on the same laptop |
-| `OLLAMA_MODEL` | `llama3.1:8b` | |
-| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | |
+| `OLLAMA_MODEL` | `gemma3:4b` | `llama3.1:8b` also works |
 | `TOP_K` | `5` | |
 | `MIN_SIMILARITY` | `0.35` | Cosine similarity cut-off; tune on real data |
 | `AUDITOR_TOKEN` | (empty = private features disabled) | |
@@ -141,7 +146,8 @@ Loads `.env` with python-dotenv into a frozen dataclass.
 - `load_corpus(slug)`, `get_passage(slug, doc_id, page, index, authorized) -> Passage | None`.
 
 ### `vrag/index.py`
-- `embed(texts) -> list[list[float]]` via Ollama `/api/embed`.
+- `embed(texts) -> list[list[float]]` with Chroma's local `all-MiniLM-L6-v2` model (ONNX,
+  no server or key), called explicitly so the model is pinned.
 - One Chroma collection `passages` in `out/chroma`, cosine distance, IDs
   `<slug>:<docId>:p<page>:<index>`, metadata `{slug, private, docId, page, index}`.
 - Private passages are indexed (the index is local, server-side) but filtered out with
@@ -166,12 +172,16 @@ Loads `.env` with python-dotenv into a frozen dataclass.
   what `hardhat verify` expects).
 
 ### `vrag/rag.py`
-- `ask(question, authorized) -> Answer` — search; if best similarity < `MIN_SIMILARITY`, return a
-  "not found in the documents" answer with no LLM call. Otherwise build the prompt, call Ollama
-  `/api/chat` with `temperature=0`, parse labels with regex `\[P(\d+)\]`.
+- `ask(question, authorized, provider=None) -> Answer` — search; if best similarity <
+  `MIN_SIMILARITY`, return a "not found in the documents" answer with no LLM call. Otherwise
+  choose the provider: `PRIVATE_LLM_PROVIDER` if any retrieved passage is private, else
+  `LLM_PROVIDER`; an explicit `provider` overrides this only for public-only questions, and
+  `anthropic` with a private passage raises an error before any network call. Build the prompt,
+  call the provider at `temperature=0` (Claude Messages API, or Ollama `/api/chat`), and parse
+  labels with regex `\[P(\d+)\]`.
 - Prompt rules: answer only from the passages; cite `[P#]` after each claim; put exact quotes in
   double quotes; say "The documents do not say" when unsure.
-- `Answer = {text, citations: [Citation], passages: {label: PassageRef}}`.
+- `Answer = {text, citations: [Citation], passages: {label: PassageRef}, provider, model}`.
 
 ### `vrag/verify.py`
 - `check_citation(label, answer, passages, displayed_text, authorized) -> CitationResult`
@@ -196,7 +206,7 @@ Loads `.env` with python-dotenv into a frozen dataclass.
 | `ask "<question>" [--auditor]` | Ask from the terminal, print statuses |
 | `verify-receipt <file.json>` | Check a receipt |
 | `fixtures` | Write `blockchain/test/fixtures/merkle.json` |
-| `check` | Print network, chain ID, registry, Ollama status |
+| `check` | Print network, chain ID, registry, LLM providers (key set, Ollama reachable) |
 
 ### `app/streamlit_app.py`
 - Sidebar: network + chain ID, registry link to explorer, auditor token field, tamper demo toggle,
@@ -314,7 +324,8 @@ class CitationResult:
 |---|---|
 | Wrong chain ID | Stop at startup with expected vs actual chain ID |
 | RPC unreachable during verify | ⚪ Unable to verify (never ✅) |
-| Ollama unreachable / model missing | Error naming `OLLAMA_URL` and the `ollama pull` command |
+| LLM provider unreachable / not configured | Error naming the provider and the setting to fix (`OLLAMA_URL` + `ollama pull`, or `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`); the key is never shown |
+| Private passage with `anthropic` forced | Refuse before any network call |
 | Corpus not published yet (`corpusId` missing) | Skip it in search and warn |
 | Unreadable PDF | Skip file, list it at the end of ingest |
 | Publish tx fails / insufficient USDC | Show the error and the faucet URL |

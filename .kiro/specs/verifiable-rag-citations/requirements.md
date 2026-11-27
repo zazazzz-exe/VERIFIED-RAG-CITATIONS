@@ -98,16 +98,24 @@ only on the official documents.
 
 #### Acceptance Criteria
 
-1. WHEN the user asks a question THE SYSTEM SHALL embed it with Ollama and retrieve the top K
-   (default 5) most similar passages from Chroma.
+1. WHEN the user asks a question THE SYSTEM SHALL embed it with the local embedding model and
+   retrieve the top K (default 5) most similar passages from Chroma.
 2. THE SYSTEM SHALL give the LLM the question and the retrieved passages labeled `[P1]`…`[PK]`
    and instruct it to answer only from them and to cite labels for every claim.
 3. IF no retrieved passage is relevant enough (similarity below a configurable threshold) THEN
    THE SYSTEM SHALL say it could not find the answer in the documents instead of calling the LLM.
 4. WHEN the session is not authorized THE SYSTEM SHALL search only public corpora.
 5. WHEN the session is authorized THE SYSTEM SHALL search public and private corpora.
-6. IF Ollama is unreachable THEN THE SYSTEM SHALL show a clear error that includes the
-   configured `OLLAMA_URL`.
+6. IF the selected LLM provider is unreachable or not configured THEN THE SYSTEM SHALL show a
+   clear error naming the provider and the setting to fix (`OLLAMA_URL`, or `ANTHROPIC_API_KEY` /
+   `ANTHROPIC_MODEL`), without ever showing the API key.
+7. WHEN every passage given to the LLM is public THE SYSTEM SHALL answer with the configured
+   `LLM_PROVIDER` (default Claude). WHEN any passage is private THE SYSTEM SHALL answer with
+   `PRIVATE_LLM_PROVIDER` (default Ollama) and SHALL NEVER send private passage text to the
+   Anthropic API.
+8. THE SYSTEM SHALL let the user force a provider for public-only questions to compare them,
+   SHALL refuse to force Claude for a question that includes private passages, and SHALL show
+   which provider and model produced each answer.
 
 ### Requirement 6: Citation verification
 

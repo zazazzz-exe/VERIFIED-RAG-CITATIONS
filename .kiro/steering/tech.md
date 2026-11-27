@@ -7,11 +7,16 @@ inclusion: always
 ## Stack
 - Python 3.12 (ingest, Merkle tree, RAG, verifier, deploy/publish CLI, web app)
 - PyMuPDF for PDF text extraction
-- Ollama for both the LLM and embeddings (installed on the user's Windows laptop)
-  - Chat model: `llama3.1:8b` (configurable with `OLLAMA_MODEL`)
-  - Embedding model: `nomic-embed-text` (configurable with `OLLAMA_EMBED_MODEL`)
-- Chroma (`chromadb`) as the local vector database. Embeddings are computed by Ollama
-  and passed to Chroma explicitly; do not rely on Chroma's default embedding function.
+- Two chat providers, chosen per question (see "LLM routing" below):
+  - Anthropic Claude API (`anthropic` Python SDK, key in `ANTHROPIC_API_KEY`, model in
+    `ANTHROPIC_MODEL`) for answers that use public passages only
+  - Ollama (installed on the user's Windows laptop) for answers that use private passages.
+    Chat model: `gemma3:4b` (configurable with `OLLAMA_MODEL`; `llama3.1:8b` also works)
+- Embeddings: Chroma's built-in local model `all-MiniLM-L6-v2` (ONNX, runs on the CPU, no
+  server and no API key; about 80 MB downloaded on first use). Anthropic has no embeddings API.
+- Chroma (`chromadb`) as the local vector database. Embeddings are computed in Python with
+  that model and passed to Chroma explicitly, so the model is pinned in our code and not left
+  to a collection default.
 - web3.py for all blockchain transactions (deploy, publish) and reads (verify)
 - Streamlit for the web app
 - pytest for Python tests
@@ -27,7 +32,8 @@ inclusion: always
   - Use `python` (or `py -3.12`), not `python3`
   - Use backslashes in commands that take Windows paths; use `pathlib` in Python code
 - Node.js 22 LTS or newer is required by Hardhat 3.
-- Ollama runs on the same machine at `http://localhost:11434` (`OLLAMA_URL`).
+- Ollama (used only for private-passage answers) runs on the same machine at
+  `http://localhost:11434` (`OLLAMA_URL`).
 - Open files with `encoding="utf-8"` explicitly in Python (Windows defaults differ).
 
 ## Prismo Glassnet (public testnet)
@@ -62,6 +68,20 @@ Python builds trees and proofs. Solidity verifies them with OpenZeppelin
 - Odd node at a level is promoted to the next level unchanged (no duplication).
 - A cross-language test (Python-generated fixture checked by a Hardhat test) must pass
   before any other Merkle-related work is considered done.
+
+## LLM routing
+- `LLM_PROVIDER` (default `anthropic`) answers questions whose retrieved passages are all public.
+- `PRIVATE_LLM_PROVIDER` (default `ollama`) answers any question whose retrieved passages include
+  a private one.
+- Private passage text MUST NEVER be sent to the Anthropic API. This is enforced in code (the
+  anthropic client is not used when any passage in the prompt is private), even if a CLI/app
+  option asks for it.
+- A comparison option (`ask --provider ollama|anthropic`, and a selector in the app) can force a
+  provider for public-only questions so both can be tried side by side. Forcing `anthropic` on
+  a question with private passages is refused with a clear error.
+- Every answer records which provider and model produced it, and the UI shows it.
+- `ANTHROPIC_API_KEY` is read from `.env` only, never logged, never included in error messages.
+- Claude is called at temperature 0 with the same `[P#]` prompt as Ollama.
 
 ## Security rules
 - Never hardcode or commit private keys. Read `PRIVATE_KEY` from `.env` (gitignored).
