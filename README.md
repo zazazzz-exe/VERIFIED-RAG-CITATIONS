@@ -9,9 +9,8 @@ citation is checked against tamper-proof records on [Prismo](https://prismo.tech
 Private document sets keep their text in private storage. Only their fingerprint (Merkle root)
 goes on Prismo, so authorized users can cite them with proof.
 
-> Status: planning. The implementation plan is in
-> [`.kiro/specs/verifiable-rag-citations/`](.kiro/specs/verifiable-rag-citations/) and is meant to be
-> built step by step with Kiro.
+> Status: planning. The implementation plan (Kiro spec) is kept locally in
+> `.kiro/specs/verifiable-rag-citations/` and is not published in this repository.
 
 ## How it works
 
@@ -24,7 +23,7 @@ goes on Prismo, so authorized users can cite them with proof.
 4. For each citation, the app re-hashes the passage text it shows you and asks the contract to
    check the Merkle proof against the published root.
 
-See [`design.md`](.kiro/specs/verifiable-rag-citations/design.md) for the full architecture.
+The design (kept locally in `.kiro/specs/verifiable-rag-citations/design.md`) has the full architecture.
 
 ## Prismo Glassnet (testnet)
 
@@ -106,8 +105,9 @@ Pick one:
   https://kiro.dev/docs/getting-started/installation/
 
 ### 7. Build with Kiro
-Kiro reads the steering files in `.kiro/steering/` and the spec in
-`.kiro/specs/verifiable-rag-citations/`. Work through the tasks in order, for example:
+The Kiro spec and steering files live in `.kiro/`, which is kept out of this repository. If you
+have them locally, Kiro reads `.kiro/steering/` and `.kiro/specs/verifiable-rag-citations/`, and
+you can work through the tasks in order, for example:
 ```
 Execute task 1 from .kiro/specs/verifiable-rag-citations/tasks.md
 ```

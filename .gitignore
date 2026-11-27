@@ -21,6 +21,7 @@ blockchain/cache/
 blockchain/types/
 blockchain/coverage/
 blockchain/ignition/deployments/
+blockchain/node.log
 
 # OS / editor
 .DS_Store
