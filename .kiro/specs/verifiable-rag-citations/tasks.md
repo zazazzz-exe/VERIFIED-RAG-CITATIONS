@@ -11,12 +11,12 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   - Confirm `python -m venv .venv`, `.venv\Scripts\Activate.ps1`, and `pip install -r requirements.txt` work
   - _Requirements: 4.1_
 
-- [ ] 2. Text normalization and Merkle tree in Python
-  - [ ] 2.1 Implement `vrag/text.py` (`normalize`, `content_hash`)
+- [x] 2. Text normalization and Merkle tree in Python
+  - [x] 2.1 Implement `vrag/text.py` (`normalize`, `content_hash`)
     - _Requirements: 1.4, 2.1, 2.2_
-  - [ ] 2.2 Implement `vrag/merkle.py` (`leaf_hash`, `hash_pair`, `build_tree`, `root`, `proof`, `verify`)
+  - [x] 2.2 Implement `vrag/merkle.py` (`leaf_hash`, `hash_pair`, `build_tree`, `root`, `proof`, `verify`)
     - _Requirements: 2.1, 2.3_
-  - [ ] 2.3 Write pytest tests for normalization, salted/unsalted hashes, and trees with 1, 2, 3, and 10 leaves
+  - [x] 2.3 Write pytest tests for normalization, salted/unsalted hashes, and trees with 1, 2, 3, and 10 leaves
     - _Requirements: 2.1, 2.3_
 
 - [ ] 3. CorpusRegistry contract
