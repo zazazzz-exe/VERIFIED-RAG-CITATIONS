@@ -100,7 +100,7 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
   unknown source → ❌, private receipt → ✅). Ask the user before continuing if anything fails.
 
 - [ ] 12. Deploy to Prismo Glassnet
-  - [ ] 12.1 Switch `.env` to Glassnet, run `python -m vrag deploy`, verify the source with
+  - [x] 12.1 Switch `.env` to Glassnet, run `python -m vrag deploy`, verify the source with
     `npx hardhat verify blockscout --network glassnet <address> <owner>`, and record the address
     in the README
     - _Requirements: 9.1, 9.2, 9.3_

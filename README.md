@@ -38,6 +38,21 @@ See [`design.md`](.kiro/specs/verifiable-rag-citations/design.md) for the full a
 Glassnet only accepts legacy (type-0) transactions; the project's deploy and publish commands
 handle that. Source: [Prismo Builder Guide](https://prismo.technology/builder-guide).
 
+### Deployed contract
+
+| | |
+|---|---|
+| Contract | `CorpusRegistry` |
+| Address | [`0x5a134Ed6Ef85889566F6b77d206D610EF1A5815b`](https://explorer.glassnet.prismo.network/address/0x5a134Ed6Ef85889566F6b77d206D610EF1A5815b) |
+| Source (verified) | [explorer, Code tab](https://explorer.glassnet.prismo.network/address/0x5a134Ed6Ef85889566F6b77d206D610EF1A5815b#code) |
+| Owner (publisher) | `0xD3D260571718e28e2978B0521ED5190cfa352D09` |
+
+Verify the source yourself after a deploy (from `blockchain\`):
+```powershell
+npx hardhat build --build-profile production
+npx hardhat verify blockscout --network glassnet <REGISTRY_ADDRESS> <OWNER_ADDRESS>
+```
+
 ## Setup on Windows
 
 Everything runs directly on Windows. No WSL or Linux needed.
