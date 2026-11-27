@@ -26,3 +26,6 @@ blockchain/ignition/deployments/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Kiro (local agent settings, specs, and steering)
+.kiro/
