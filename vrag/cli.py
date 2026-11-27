@@ -9,6 +9,8 @@ from pathlib import Path
 
 from vrag import merkle
 from vrag.config import ROOT
+from vrag.ingest import ingest_folder
+from vrag.store import OUT_DIR, save_corpus
 from vrag.text import ZERO32, content_hash, normalize
 
 FIXTURE_PATH = ROOT / "blockchain" / "test" / "fixtures" / "merkle.json"
@@ -60,9 +62,33 @@ def cmd_fixtures(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ingest(args: argparse.Namespace) -> int:
+    corpus = ingest_folder(
+        Path(args.folder), args.slug, args.name, args.version, private=args.private
+    )
+    path = save_corpus(corpus, Path(args.out_dir))
+    print(f"Ingested {len(corpus.passages)} passages into '{corpus.slug}' ({path})")
+    print(f"Merkle root: 0x{corpus.root.hex()}")
+    if corpus.private:
+        print("Private corpus: text and salts stored in private.db only.")
+    for name, reason in corpus.skipped:
+        print(f"Skipped {name}: {reason}", file=sys.stderr)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vrag", description="Verifiable RAG citations")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    ingest = sub.add_parser("ingest", help="split PDF/TXT files into passages and build the tree")
+    ingest.add_argument("folder")
+    ingest.add_argument("--slug", required=True)
+    ingest.add_argument("--name", required=True)
+    ingest.add_argument("--version", required=True)
+    ingest.add_argument("--private", action="store_true")
+    ingest.add_argument("--out-dir", default=str(OUT_DIR), help=argparse.SUPPRESS)
+    ingest.set_defaults(func=cmd_ingest)
+
     sub.add_parser("fixtures", help="write blockchain/test/fixtures/merkle.json").set_defaults(
         func=cmd_fixtures
     )

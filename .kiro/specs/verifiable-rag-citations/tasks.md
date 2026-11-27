@@ -41,13 +41,13 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
     corpus IDs fail. Run with `npx hardhat test`.
     - _Requirements: 2.4, 3.4_
 
-- [ ] 5. Document ingestion and storage
-  - [ ] 5.1 Implement `vrag/ingest.py` (PDF/TXT extraction, passage splitting, deterministic ordering)
+- [x] 5. Document ingestion and storage
+  - [x] 5.1 Implement `vrag/ingest.py` (PDF/TXT extraction, passage splitting, deterministic ordering)
     - _Requirements: 1.1, 1.2, 1.3, 1.5_
-  - [ ] 5.2 Implement `vrag/store.py` (public corpus JSON, private SQLite with salts, passage lookup
+  - [x] 5.2 Implement `vrag/store.py` (public corpus JSON, private SQLite with salts, passage lookup
     that hides private text from unauthorized callers)
     - _Requirements: 2.2, 7.1_
-  - [ ] 5.3 Add the `ingest` CLI command and a test that ingesting `data/samples/` twice gives the same root
+  - [x] 5.3 Add the `ingest` CLI command and a test that ingesting `data/samples/` twice gives the same root
     - _Requirements: 1.3_
 
 - [ ] 6. Blockchain connection, deploy, and publish (from Python)
