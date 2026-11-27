@@ -58,7 +58,7 @@ All commands run in PowerShell on Windows (see `.kiro/steering/tech.md`).
     second terminal, deploy locally, and publish the sample corpora
     - _Requirements: 4.2, 9.1_
 
-- [ ] 7. Checkpoint: run `pytest -q` and `npx hardhat test` (in `blockchain\`), and confirm the sample
+- [x] 7. Checkpoint: run `pytest -q` and `npx hardhat test` (in `blockchain\`), and confirm the sample
   corpora are published on the local Hardhat node and `check` reports chain ID 31337. Ask the user
   before continuing if anything fails.
 
